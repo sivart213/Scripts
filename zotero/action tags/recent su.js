@@ -52,22 +52,20 @@ await Zotero.DB.executeTransaction(async function () {
     }
 
     for (let id of taggedIDs) {
+        if (openZotIDs.has(id)) continue;
+
         let zotItem = await Zotero.Items.getAsync(id);
         if (!zotItem) continue;
         
         // remove "/open" and "/recent" tags from unopened items
-        let changed = false;
-        if (!openZotIDs.has(id)) {
-            if (zotItem.hasTag(OPEN_TAG)) {
-                zotItem.removeTag(OPEN_TAG);
-                changed = true;
-            }
-            if (zotItem.hasTag(RECENT_TAG)) {
-                zotItem.removeTag(RECENT_TAG);
-                changed = true;
-            }
+        if (zotItem.hasTag(OPEN_TAG)) {
+            zotItem.removeTag(OPEN_TAG);
         }
-        if (changed) await zotItem.save();
+        if (zotItem.hasTag(RECENT_TAG)) {
+            zotItem.removeTag(RECENT_TAG);
+        }
+        
+        await zotItem.save();
     }
 });
 
