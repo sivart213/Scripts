@@ -25,7 +25,7 @@ s.addCondition('tag', 'is', RECENT_TAG);
 
 let taggedIDs = await s.search();
 
-let openParentIDs = new Set();
+let openZotIDs = new Set();
 
 // 3️⃣ Process tagged items
 await Zotero.DB.executeTransaction(async function () {
@@ -38,7 +38,17 @@ await Zotero.DB.executeTransaction(async function () {
             let parent = Zotero.Items.getTopLevel([zotItem])[0];
             if (parent) zotItem = parent;
         }
-        openParentIDs.add(zotItem.id);
+        openZotIDs.add(zotItem.id);
+        let changed = false;
+        if (!zotItem.hasTag(OPEN_TAG)) {
+            zotItem.addTag(OPEN_TAG, 0); // 0 = manual tag
+            changed = true;
+        }
+        if (!zotItem.hasTag(RECENT_TAG)) {
+            zotItem.addTag(RECENT_TAG, 0); // 0 = manual tag
+            changed = true;
+        }
+        if (changed) await zotItem.save();
     }
 
     for (let id of taggedIDs) {
@@ -46,31 +56,18 @@ await Zotero.DB.executeTransaction(async function () {
         if (!zotItem) continue;
         
         // remove "/open" and "/recent" tags from unopened items
-        if (!openParentIDs.has(id)) {
+        let changed = false;
+        if (!openZotIDs.has(id)) {
             if (zotItem.hasTag(OPEN_TAG)) {
                 zotItem.removeTag(OPEN_TAG);
+                changed = true;
             }
             if (zotItem.hasTag(RECENT_TAG)) {
                 zotItem.removeTag(RECENT_TAG);
+                changed = true;
             }
-
-            await zotItem.save();
         }
-    }
-
-    for (let id of openParentIDs) {
-        let zotItem = await Zotero.Items.getAsync(id);
-        if (!zotItem) continue;
-        
-        // Add tags if needed
-        if (!zotItem.hasTag(OPEN_TAG)) {
-            zotItem.addTag(OPEN_TAG, 0); // 0 = manual tag
-        }
-        if (!zotItem.hasTag(RECENT_TAG)) {
-            zotItem.addTag(RECENT_TAG, 0); // 0 = manual tag
-        }
-
-        await zotItem.save();
+        if (changed) await zotItem.save();
     }
 });
 
