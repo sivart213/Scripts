@@ -7,9 +7,6 @@
 
 const Zotero_Tabs = require("Zotero_Tabs");
 
-// Only run once per trigger (avoid multiple executions when multiple items are selected)
-//if (item) return;
-
 const OPEN_TAG = '/open';
 const RECENT_TAG = '/recent';
 
@@ -23,7 +20,6 @@ let openIDs = open_tabs.map(tab => tab.data.itemID);
 let s = new Zotero.Search();
 s.libraryID = Zotero.Libraries.userLibraryID;
 s.addCondition('joinMode', 'any');
-//s.addCondition('tag', 'is', [OPEN_TAG, RECENT_TAG]);
 s.addCondition('tag', 'is', OPEN_TAG);
 s.addCondition('tag', 'is', RECENT_TAG);
 
@@ -49,7 +45,7 @@ await Zotero.DB.executeTransaction(async function () {
         let zotItem = await Zotero.Items.getAsync(id);
         if (!zotItem) continue;
         
-        // remove "/open" and "/recent" tags
+        // remove "/open" and "/recent" tags from unopened items
         if (!openParentIDs.has(id)) {
             if (zotItem.hasTag(OPEN_TAG)) {
                 zotItem.removeTag(OPEN_TAG);
@@ -66,7 +62,7 @@ await Zotero.DB.executeTransaction(async function () {
         let zotItem = await Zotero.Items.getAsync(id);
         if (!zotItem) continue;
         
-        // Remove existing "/open" tag
+        // Add tags if needed
         if (!zotItem.hasTag(OPEN_TAG)) {
             zotItem.addTag(OPEN_TAG, 0); // 0 = manual tag
         }
@@ -78,4 +74,4 @@ await Zotero.DB.executeTransaction(async function () {
     }
 });
 
-return `Synced /open tag: ${openIDs.length} open, ${taggedIDs.length} previously tagged`;
+//return `Synced /open tag: ${openIDs.length} open, ${taggedIDs.length} previously tagged`;
